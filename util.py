@@ -105,6 +105,7 @@ def open_image(image_file):
             if "deepin" in os.uname()[2]:
                 os.system("deepin-image-viewer " + image_file)  # for deepin
             else:
+                os.system("gsettings set org.gnome.eog.view background-color 'rgb(255,255,0)'")
                 os.system("eog " + image_file)  # for Linux
         else:
             os.system("open " + image_file)  # for Mac

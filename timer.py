@@ -16,6 +16,7 @@ class Timer(object):
         self.sleep_interval = sleep_interval
 
         self.diff_time = self.local_jd_time_diff()
+        self.start_buy_local_time = None
 
     def jd_time(self):
         """
@@ -47,7 +48,13 @@ class Timer(object):
             # 本地时间减去与京东的时间差，能够将时间误差提升到0.1秒附近
             # 具体精度依赖获取京东服务器时间的网络时间损耗
             if self.local_time() - self.diff_time >= self.buy_time_ms:
+#                self.start_buy_local_time = datetime.now().strptime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                self.start_buy_local_time = datetime.strptime(datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],"%Y-%m-%d %H:%M:%S.%f")
                 logger.info('时间到达，开始执行……')
                 break
             else:
                 time.sleep(self.sleep_interval)
+    def buytime_get(self):
+        """获取开始抢购的时间"""
+        return self.start_buy_local_time
+

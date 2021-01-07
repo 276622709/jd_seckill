@@ -5,6 +5,7 @@ import functools
 import json
 import os
 import pickle
+import sys
 
 from lxml import etree
 from jd_logger import logger
@@ -20,6 +21,7 @@ from util import (
     save_image,
     open_image
 )
+from datetime import datetime, timedelta
 
 
 class SpiderSession:
@@ -280,6 +282,7 @@ class JdSeckill(object):
         self.session = self.spider_session.get_session()
         self.user_agent = self.spider_session.user_agent
         self.nick_name = None
+        self.running_flag = True
 
     def login_by_qrcode(self):
         """
@@ -349,15 +352,31 @@ class JdSeckill(object):
         """
         抢购
         """
-        while True:
+        while self.running_flag:
             try:
                 self.request_seckill_url()
                 while True:
                     self.request_seckill_checkout_page()
                     self.submit_seckill_order()
+                    self.seckill_canstill_running()
             except Exception as e:
                 logger.info('抢购发生异常，稍后继续执行！', e)
             wait_some_time()
+    def seckill_canstill_running(self):
+        """用config.ini文件中的continue_time加上函数buytime_get()获取到的start_buy_local_time，
+            来判断抢购的任务是否可以继续运行
+        """
+        buy_time = self.timers.buytime_get()
+        continue_time = int(global_config.getRaw('config','continue_time'))
+        stop_time = datetime.strptime(
+            (buy_time + timedelta(minutes=continue_time)).strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "%Y-%m-%d %H:%M:%S.%f"
+        )
+        current_time = datetime.now()
+        if current_time > stop_time:
+            self.running_flag = False
+            logger.info('超过允许的运行时间，任务结束。')
+            sys.exit(0)
 
     def make_reserve(self):
         """商品预约"""
@@ -439,7 +458,7 @@ class JdSeckill(object):
             'Host': 'itemko.jd.com',
             'Referer': 'https://item.jd.com/{}.html'.format(self.sku_id),
         }
-        while True:
+        while self.running_flag:
             resp = self.session.get(url=url, headers=headers, params=payload)
             resp_json = parse_json(resp.text)
             if resp_json.get('url'):
@@ -454,6 +473,7 @@ class JdSeckill(object):
             else:
                 logger.info("抢购链接获取失败，稍后自动重试")
                 wait_some_time()
+            self.seckill_canstill_running()
 
     def request_seckill_url(self):
         """访问商品的抢购链接（用于设置cookie等"""
@@ -608,6 +628,7 @@ class JdSeckill(object):
             total_money = resp_json.get('totalMoney')
             pay_url = 'https:' + resp_json.get('pcUrl')
             logger.info('抢购成功，订单号:{}, 总价:{}, 电脑端付款链接:{}'.format(order_id, total_money, pay_url))
+            self.running_flag = False
             if global_config.getRaw('messenger', 'enable') == 'true':
                 success_message = "抢购成功，订单号:{}, 总价:{}, 电脑端付款链接:{}".format(order_id, total_money, pay_url)
                 send_wechat(success_message)

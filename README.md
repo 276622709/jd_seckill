@@ -115,3 +115,17 @@
 ## 感谢
 ##### 非常感谢原作者 https://github.com/zhou-xiaojun/jd_mask 提供的代码
 ##### 也非常感谢 https://github.com/wlwwu/jd_maotai 进行的优化
+
+## 更新
+1. 启动脚本时可以自动修改抢购时间config.ini中buy_time，默认为当天09:59:59.500  
+如若想关闭该功能请注释掉config.py中以下代码  
+```
+self.buy_time = datetime.now().strftime('%Y-%m-%d')+' 09:59:59.500'
+self._config.set('config','buy_time',self.buy_time)
+self._configRaw.set('config','buy_time',self.buy_time)
+with open(self._path,'w') as f:
+    self._config.write(f)
+```
+2. 抢购运行时间设置为默认2分钟，超过时间脚本自动关闭  
+如有变动需求可更改config.ini中continue对应时间(默认为分钟)  
+3. 修改了客户端为linux时，扫描二维码用的工具打开图片时背景为黑色，京东手机端无法扫描识别的问题
